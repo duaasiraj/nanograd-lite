@@ -8,8 +8,11 @@ class Tensor:
         self.grad=0
         self._prev=set(_children)#stores how to get back to this node 
         self._op=_op #stores what operation produced this node
-        self._backward=lambda:None #topological sort 
-    
+        self._backward=lambda:None # does nothing by default, overridden by each op
+
+    def __repr__(self):
+        return f"Tensor(data={self.data}, grad={self.grad})"
+
     def __add__(self, other):
        x=Tensor(self.data+other.data,(self,other),'+')
        return x
