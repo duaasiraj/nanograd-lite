@@ -76,10 +76,3 @@ def draw_dot(root):
     return dot
 
 
-a = Tensor(2.0)
-b = Tensor(3.0)
-c = a + b
-d = c * b
-
-dot = draw_dot(d)
-dot.render("graph", view=True)  
