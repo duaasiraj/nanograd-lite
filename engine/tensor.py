@@ -1,12 +1,12 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from engine.utils import topo_sort
+from engine.utils import topo_sort,_unbroadcast
 
 class Tensor:
     def __init__(self, data,_children=(),_op=''):
-        self.data=data
-        self.grad=0
+        self.data=np.array(data, dtype=float)
+        self.grad=np.zeros_like(self.data)
         self._prev=set(_children)#stores how to get back to this node 
         self._op=_op #stores what operation produced this node
         self._backward=lambda:None # does nothing by default, overridden by each op
@@ -18,8 +18,8 @@ class Tensor:
         other = other if isinstance(other, Tensor) else Tensor(other)
         out = Tensor(self.data + other.data, (self, other), '+')
         def _backward():
-            self.grad += 1.0 * out.grad
-            other.grad += 1.0 * out.grad
+            self.grad += _unbroadcast(out.grad,self.data.shape)
+            other.grad += _unbroadcast(out.grad,other.data.shape)
         out._backward = _backward
         return out
     
@@ -27,20 +27,26 @@ class Tensor:
         other = other if isinstance(other, Tensor) else Tensor(other)
         out=Tensor(self.data*other.data,(self,other),'*')
         def _backward():
-            self.grad+=out.grad*other.data
-            other.grad+=out.grad*self.data
+            self.grad+=_unbroadcast(out.grad*other.data,self.data.shape)
+            other.grad+=_unbroadcast(out.grad*self.data,other.data.shape)
         out._backward=_backward
         return out
     
     def __rmul__(self, other):
         return self*other
     
+    def sum(self):
+        out = Tensor(self.data.sum(), (self,), 'sum')
+        def _backward():
+            self.grad += np.ones_like(self.data) * out.grad
+        out._backward = _backward
+        return out
+    
     def exp(self):
         x=self.data
-        out = Tensor(math.exp(x), (self, ), 'exp')
-
+        out = Tensor(np.exp(self.data), (self, ), 'exp')
         def _backward():
-            self.grad+=out.data+out.grad
+            self.grad+=out.data*out.grad
         out._backward=_backward
         return out
     
@@ -51,9 +57,6 @@ class Tensor:
             self.grad += other * (self.data ** (other - 1)) * out.grad
         out._backward = _backward
         return out
-    
-    def __rmul__(self, other): 
-        return self * other
 
     def __truediv__(self, other): 
         return self * other**-1
@@ -69,8 +72,37 @@ class Tensor:
     
     def backward(self):
         topo = topo_sort(self)         
-        self.grad = 1.0      
+        self.grad = np.ones_like(self.data)    
         for node in reversed(topo):  
             node._backward()
 
- 
+    def mean(self):
+        out = Tensor(np.mean(self.data), (self,), 'mean')
+        def _backward():
+            self.grad += (np.ones_like(self.data) * out.grad)/self.data.size
+        out._backward = _backward
+        return out
+
+    def reshape(self, shape):
+        out = Tensor(self.data.reshape(shape), (self,), 'reshape')
+        def _backward():
+            self.grad += out.grad.reshape(self.data.shape)
+        out._backward = _backward
+        return out
+
+    def transpose(self):
+        out=Tensor(self.data.T,(self,),'Transpose')
+        def _backward():
+            self.grad+=out.data.T
+        out._backward=_backward
+        return out
+
+    def __matmul__(self,other):
+        out=Tensor(self.data@other.data,(self,other),"MatMul")
+        def _backward():
+            self.grad  += out.grad @ other.data.T
+            other.grad += self.data.T @ out.grad
+        out._backward=_backward
+        return out 
+    
+    
