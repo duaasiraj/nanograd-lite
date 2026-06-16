@@ -25,40 +25,36 @@ def _unbroadcast(grad, original_shape):
 
 
 #SANITY CHECK-COMPARE NUMERIAL AND AUTOMATIC DIFF T_T
+
 def gradient_check(tensor_func, inputs, epsilon=1e-5, tolerance=1e-4):
     from engine.tensor import Tensor
-    
     tensor_inputs = [Tensor(x.copy()) for x in inputs]
     out = tensor_func(*tensor_inputs)
+    assert out.data.size == 1, "tensor_func must return a scalar tensor (size=1)."
     out.backward()
     analytical_grads = [t.grad.copy() for t in tensor_inputs]
-
     numerical_grads = []
-    for i, x in enumerate(inputs):
+    for x in inputs:
         num_grad = np.zeros_like(x)
-        it = np.nditer(x, flags=['multi_index'])
-        while not it.finished:
-            idx = it.multi_index
-
-            original = x[idx]
-
-            x[idx] = original + epsilon
-            out_plus = tensor_func(*[Tensor(inp.copy()) for inp in inputs]).data.sum()
-
-            x[idx] = original - epsilon
-            out_minus = tensor_func(*[Tensor(inp.copy()) for inp in inputs]).data.sum()
-
-            x[idx] = original  # restore cleanly
-
-            num_grad[idx] = (out_plus - out_minus) / (2 * epsilon)
-            it.iternext()
-
+        with np.nditer(x, flags=['multi_index'], op_flags=['readwrite']) as it:
+            for val in it:
+                idx = it.multi_index
+                original = val.copy()  
+                # Evaluate f(x + eps)
+                x[idx] = original + epsilon
+                out_plus = tensor_func(*[Tensor(inp.copy()) for inp in inputs]).data.item()
+                # Evaluate f(x - eps)
+                x[idx] = original - epsilon
+                out_minus = tensor_func(*[Tensor(inp.copy()) for inp in inputs]).data.item()
+                x[idx] = original
+                num_grad[idx] = (out_plus - out_minus) / (2 * epsilon)
+                
         numerical_grads.append(num_grad)
-
     all_passed = True
     for i, (ag, ng) in enumerate(zip(analytical_grads, numerical_grads)):
-        diff = np.max(np.abs(ag - ng))
+        diff = np.max(np.abs(ag - ng)) 
         passed = diff < tolerance
+        
         print(f"Input {i}: max diff = {diff:.2e} → {'PASS' if passed else 'FAIL'}")
         if not passed:
             all_passed = False

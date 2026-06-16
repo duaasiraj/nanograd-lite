@@ -35,8 +35,8 @@ class Tensor:
     def __rmul__(self, other):
         return self*other
     
-    def sum(self):
-        out = Tensor(self.data.sum(), (self,), 'sum')
+    def sum(self,axis=None):
+        out = Tensor(self.data.sum(axis=axis,keepdims=True), (self,), 'sum')
         def _backward():
             self.grad += np.ones_like(self.data) * out.grad
         out._backward = _backward
@@ -91,17 +91,19 @@ class Tensor:
         return out
 
     def transpose(self):
-        out=Tensor(self.data.T,(self,),'Transpose')
+        out=Tensor(np.swapaxes(np.data, -1, -2),(self,),'Transpose')
         def _backward():
-            self.grad+=out.data.T
+            self.grad+=np.swapaxes(out.grad, -1, -2)
         out._backward=_backward
         return out
 
     def __matmul__(self,other):
         out=Tensor(self.data@other.data,(self,other),"MatMul")
         def _backward():
-            self.grad  += out.grad @ other.data.T
-            other.grad += self.data.T @ out.grad
+            grad_self = out.grad @ np.swapaxes(other.data, -1, -2)
+            grad_other = np.swapaxes(self.data, -1, -2) @ out.grad
+            self.grad  += _unbroadcast(grad_self, self.data.shape)
+            other.grad += _unbroadcast(grad_other, other.data.shape)
         out._backward=_backward
         return out 
     
