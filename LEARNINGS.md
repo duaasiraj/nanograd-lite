@@ -317,3 +317,94 @@ The tests confirmed that:
 
 This phase was a significant milestone. The tensor operations are now robust, and the activation functions provide the non-linearities needed to build actual neural networks.
 
+---
+
+## Phase 2 — Building NN Modules
+
+### Motivation
+
+With tensor operations and activation functions in place, the next logical step was to build the actual neural network components. The goal was to create modular, reusable building blocks that could be composed together to form complete neural networks. This phase was about moving from mathematical operations to a working neural network architecture.
+
+### Understanding the Big Picture
+
+This phase was pretty straightforward. It involved automating the layers to work sequentially. The main issue I ran into here was the weight initialization and conceptualizing how things were working. It took a while to grasp and imagine a working neural network from math, but once that was down the rest of the functions were easy to write.
+
+The fundamental insight was that a neural network is just a series of linear transformations followed by non-linearities. Each layer takes an input, multiplies it by weights, adds a bias, applies an activation function, and passes the result to the next layer. The challenge was in building a system that could:
+
+1. Initialize parameters properly
+2. Store and manage parameters across layers
+3. Handle the forward pass sequentially
+4. Track parameters for gradient updates during backpropagation
+
+### Weight Initialization Crisis
+
+Weight initialization was a major issue. The temptation was to initialize weights to zero.It seems natural and symmetric. But this is a trap.
+
+If we initialize all weights to 0, every neuron in a layer would end up learning almost the same thing. Why? Because during the forward pass, all neurons receive the same input and produce the same output. During backpropagation, they all receive the same gradient and update in exactly the same way. The symmetry is never broken, and the network never learns useful features.
+
+I needed a better approach. That's where Xavier/Glorot initialization came in. The idea is to initialize weights randomly but in a way that maintains the variance of activations across layers. Without this, gradients can either explode (if weights are too large) or vanish (if weights are too small) as they propagate through deep networks.
+
+The Xavier uniform distribution sets up limits:
+```
+limit = sqrt(6 / (fan_in + fan_out))
+weights = uniform(-limit, limit)
+```
+
+Where `fan_in` is the number of input connections and `fan_out` is the number of output connections. This keeps the variance of outputs roughly equal to the variance of inputs, preventing the signal from dying or exploding as it travels through the network.
+
+### Building the Layer Class
+
+The `Linear` layer was the first module I built. It needed to:
+- Store weight and bias tensors as parameters
+- Compute the forward pass: `output = input @ weights + bias`
+- Track which tensors were parameters for later gradient updates
+
+The key design decision was that parameters should be tracked separately from regular tensors. This way, when I call `backward()`, I know which tensors to extract gradients from.
+
+### The Sequential Model
+
+With layers defined, I needed a way to chain them together. The `Sequential` module takes a list of layers and applies them in order during the forward pass. It also needs to collect all parameters from all layers for the optimizer to update.
+
+This was conceptually simple but required careful implementation:
+- During forward pass, data flows through each layer sequentially
+- Each layer's output becomes the next layer's input
+- All parameters are collected into a single list for easy access
+
+### The Parameter Tracking System
+
+One subtle but important decision was how to track which tensors were parameters vs. intermediate values. In PyTorch, this is handled by the `requires_grad` flag. In my implementation, I kept it simpler—the `Sequential` model collects parameters from each layer.
+
+The separation of parameters from intermediate values was crucial for keeping the system clean and preventing accidental gradient updates on non-parameters.
+
+### Conceptual Breakthrough
+
+The hardest part wasn't writing the code—it was understanding how all the pieces fit together. For a while, I was just following formulas without truly grasping what was happening.
+
+The breakthrough came when I visualized the flow:
+1. **Forward pass:** Input → Layer 1 → Activation → Layer 2 → Activation → ... → Loss
+2. **Backward pass:** Loss → Layer N gradient → Layer N-1 gradient → ... → Input gradient
+
+Each layer transforms the data in some way, and the loss at the end measures how wrong the prediction is. The gradients tell each layer how to adjust its weights to reduce that loss.
+
+Once this clicked, the rest of the implementation was just plumbing—connecting the dots between the mathematical concepts and the code.
+
+### Sanity Check
+
+A sanity check was performed to ensure that the output shape and loss function are working. The test involved:
+1. Creating a small neural network with a few layers
+2. Generating random input data
+3. Running a forward pass and checking the output shape
+4. Computing a loss and ensuring it wasnt zero
+
+All tests passed, confirming that the modules work correctly together. The code can be accessed in `demos/nn_demo.py`.
+
+### Final Results
+
+The module system now provides the foundation for building and training neural networks. The key components are in place:
+- Tensor class with autograd support
+- Activation functions (ReLU, sigmoid, tanh, softmax)
+- Linear layers with proper initialization
+- Sequential container for composing layers
+- Parameter tracking for optimization
+
+The next step will be implementing an optimizer and a training loop to actually train models on real data.
