@@ -211,4 +211,109 @@ A complete sanity check was performed to ensure that vector/tensor operations wo
 
 ![Resulting outcome](assets/phase1_sanitycheck.png)
 
-The visualization shows the computation graph and confirms that gradients propagate correctly through vectorized operations, including those involving broadcasting. The tensor implementation now provides the foundation for building neural networks with multi-dimensional data.
+---
+
+## Phase 1.5 — Fixing Errors and Adding Activation Functions
+
+### Motivation
+
+After getting basic tensor operations working, the next step was to implement activation functions and fix the issues I had glossed over in the previous phase. Real neural networks need non-linearities like ReLU, tanh, sigmoid, and especially SoftMax for classification tasks. But before I could get there, I had to fix some fundamental problems in my tensor implementation that I hadn't anticipated.
+
+### The Higher-Dimensional Transpose Problem
+
+First things first, my mistake was thinking in 2D and forgetting that arrays of higher dimensions exist. If they come along, my transpose functions just break them by totally scrambling the dimensions. 
+
+Here's the core insight: backpropagation moves backward through a forward graph. During the forward pass, data flows from left to right, combining inputs and weights. During the backward pass, gradients flow from right to left. Because the directions are reversed, the geometric shapes no longer align.
+
+Flipping the last two axes is our way of rotating the puzzle pieces so they slide together perfectly during the reverse journey, without scrambling which batch of data they belong to. If I transpose the entire array instead of just swapping the last two dimensions, I'd be mixing up batch data, which is a disaster.
+
+So I needed to modify both the transpose function and matmul again. Transpose was simple, just swap the last two axes instead of the whole thing.
+
+### MatMul Broadcasting with Higher Dimensions
+
+With matmul I hit another wall. Sure I could just swap instead of transpose, but what about the fact that when multiplying with more dimensions, dimensions might have been added as well?
+
+Let's say I have the following:
+```
+self.data:    (32, 10, 4)  <- 3 Dimensions
+other.data:        (4, 5)  <- 2 Dimensions
+-------------------------------
+out:          (32, 10, 5)  <- The Forward Pass Output
+```
+32 batches of 10 by 4 matrices and a weight 2 by 2 matrix? Wait, that's not right. Let me re-read... Actually, to make this multiplication mathematically legal, NumPy automatically pads the smaller array on the left with a "ghost" dimension of size 1 to match the number of dimensions of the larger array.
+
+It temporarily treats `other.data` as if its shape is `(1, 4, 5)`. Then, it broadcasts that leading 1 up to 32 so it can cleanly perform 32 independent matrix multiplications.
+
+Now here's the tricky part: `out.grad` also has 3 dimensions, which means when I calculate `other.grad`, even though it's just supposed to have 2 dimensions, it now has 3. Hence transposing is not enough—I also need to unbroadcast the added dimension to get the correct gradient.
+
+### The Sum Function Problem
+
+Another thing I learnt: we need an axis to be added in sum. Before, I was going in with the assumption that we just sum everything, but functions like SoftMax require you to sum across that specific axis, which again required me to fix the function before moving onto my activation functions.
+
+### Activation Functions: The Easy Ones
+
+This phase was the most challenging both math-wise and debugging-wise, but let's start with the easier ones.
+
+Deriving the equations for tanh, sigmoid, and ReLU was now easier than expected since I had gotten used to the approach by now. Each follows the same pattern:
+
+**ReLU:** Forward is `max(0, x)`. Backward is `1 if x > 0 else 0`.
+
+**Sigmoid:** Forward is `1/(1 + e^(-x))`. Backward is `s * (1 - s)`.
+
+**Tanh:** Forward is `(e^x - e^(-x))/(e^x + e^(-x))`. Backward is `1 - t^2`.
+
+The patterns were familiar now—just the chain rule and element-wise operations.
+
+### SoftMax: The Hard One
+
+The main issue arose working with SoftMax. Traditional SoftMax overflows easily with large integers. That's where I learnt about subtracting the maximum value to better fit the data sets in the exponentials:
+
+```
+softmax(x_i) = exp(x_i - max(x)) / sum(exp(x_j - max(x)))
+```
+
+This stabilizes the computation without changing the result.
+
+The derivative of this was the hardest to work on. A simple Jacobian could be used hypothetically speaking. I mean, it's just:
+```
+J = diag(s) - s·s^T
+```
+and backward as:
+```
+J^T * out.grad
+```
+
+But it takes up too much space and time complexity in reality. A 1000 by 1000 array would require 1,000,000 elements—completely impractical for any real model. So there was need to simplify this.
+
+I won't go into the math here since it took hours to understand and one can dive into it if needed. I'll try to add a doc later documenting the math behind each function. But until then, all that's needed is that the backward turn out to be:
+
+```
+s_j * (g[j] - s·g)
+```
+
+And as seen, this only takes O(j) space instead of O(j²). One thing to note is `s·g` is the dot product. It removes common modes and returns relative differences rather than absolute values. Meaning if the gradient is the same for all values of x, the relative gradient would be 0 for all elements—which makes sense because a uniform shift in logits doesn't change the softmax output.
+
+### The Debugging Phase
+
+I had to once again rewrite the sum function to accept additional arguments and work properly, as it was clashing with NumPy's own function. This got a bit frustrating as I had to now keep 2 separate versions within sum, as well as ensure that a final scalar is being considered since `out.grad` needs to be a single scalar value.
+
+The rest of the mistakes here were mainly parameter mismatches—passing the wrong number of arguments, forgetting to handle edge cases, and not properly checking shapes during gradient computation.
+
+
+**SoftMax Implementation:**
+The forward pass required the stabilization trick, and the backward pass had to use the simplified O(n) formula to be practical for real use cases.
+
+### Sanity Check
+
+Final tests were done to ensure all activation functions work correctly and their gradients are properly computed. The code is in `demos/vector_demo.py`.
+
+![Resulting outcome](assets/phase1.5.png)
+
+The tests confirmed that:
+- All activation functions compute correct forward outputs
+- Gradients match analytical derivatives for random inputs
+- SoftMax handles numerical stability correctly
+- The higher-dimensional matmul and transpose fixes work properly
+
+This phase was a significant milestone. The tensor operations are now robust, and the activation functions provide the non-linearities needed to build actual neural networks.
+

@@ -35,13 +35,23 @@ class Tensor:
     def __rmul__(self, other):
         return self*other
     
-    def sum(self,axis=None):
-        out = Tensor(self.data.sum(axis=axis,keepdims=True), (self,), 'sum')
+    def sum(self, axis=None, keepdims=True,**kwargs):
+        out = Tensor(self.data.sum(axis=axis, keepdims=keepdims),(self,),'sum')
         def _backward():
-            self.grad += np.ones_like(self.data) * out.grad
+            grad = out.grad
+            if axis is not None and not keepdims:
+                shape=list(self.data.shape)
+                if isinstance(axis,int):
+                    axis_ = (axis,)
+                else:
+                    axis_ = axis
+                for ax in sorted(axis_):
+                    grad = np.expand_dims(grad, ax)
+            self.grad += np.broadcast_to(grad, self.data.shape)
         out._backward = _backward
+
+
         return out
-    
     def exp(self):
         x=self.data
         out = Tensor(np.exp(self.data), (self, ), 'exp')
@@ -91,7 +101,7 @@ class Tensor:
         return out
 
     def transpose(self):
-        out=Tensor(np.swapaxes(np.data, -1, -2),(self,),'Transpose')
+        out=Tensor(np.swapaxes(self.data, -1, -2),(self,),'Transpose')
         def _backward():
             self.grad+=np.swapaxes(out.grad, -1, -2)
         out._backward=_backward
@@ -107,4 +117,34 @@ class Tensor:
         out._backward=_backward
         return out 
     
+    def tanh(self):
+        out=Tensor(np.tanh(self.data),(self,),"tanh")
+        def _backward():
+            self.grad += (1-out.data**2)* out.grad
+        out._backward=_backward
+        return out 
     
+    def sigmoid(self):
+        out=Tensor((1 / (1 + np.exp(-self.data))),(self,),"sigmoid")
+        def _backward():
+            self.grad+=out.grad*out.data*(1-out.data)
+        out._backward=_backward
+        return out
+    
+    def relu(self):
+        out=Tensor(np.maximum(self.data,0),(self,),"ReLu")
+        def _backward():
+            self.grad+=(out.data>0)*out.grad
+        out._backward=_backward
+        return out
+    
+    def softmax(self):
+        exp=np.exp(self.data - np.max(self.data))
+        s=exp / np.sum(exp)
+        out = Tensor(s, (self,), "softmax")
+        def _backward():
+            dot=np.sum(out.data*out.grad)
+            self.grad += out.data*(out.grad-dot)
+        out._backward=_backward
+        return out
+
