@@ -680,3 +680,13 @@ The numbers were comparable to what you'd expect from a similar network in PyTor
 
 ![Resulting outcome](assets/mnist1.png)
 ![Resulting outcome](assets/mnist2.png)
+
+## AI Disclosure
+
+AI tools were used only as a supplementary aid for:
+
+- Brainstorming and outlining an initial high-level project plan when the project scope was still abstract.
+- Generating ideas for test cases and stress tests, and providing feedback during debugging and validation of my own implementations.
+- Assisting with documentation, explanations, and code comments where appropriate.
+
+All core implementation, design decisions, debugging, and final code were completed and verified by me. 

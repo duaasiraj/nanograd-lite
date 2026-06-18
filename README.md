@@ -1,86 +1,137 @@
-# autodiff-engine
-Automatic differentiation engine built from scratch with computational graphs and backpropagation.
----
-## File Structure
-```
-autodiff-engine/
+# nanograd
 
-├── engine/                  # CORE AUTODIFF SYSTEM (heart of the framework)
-│   ├── tensor.py           # Main Tensor class: data, grad, requires_grad, backward trigger
-│   ├── ops.py              # Low-level math ops: add, mul, matmul, relu, exp + backward rules
-│   ├── autograd.py         # Backprop engine: graph traversal + gradient propagation logic
-│   ├── function.py         # Function abstraction: each operation as a class with forward/backward
-│   ├── context.py          # Stores saved tensors from forward pass for backward computation
-│   ├── graph.py            # Builds computation graph structure for visualization/debugging
-│   └── utils.py           # Helpers: topo sort, shape checks, gradient helpers, debugging tools
-│
-├── nn/                     # NEURAL NETWORK LAYER API (user-facing ML building blocks)
-│   ├── modules.py          # Base Module class: parameters(), forward(), zero_grad()
-│   ├── layers.py           # Layers like Linear, (future: Conv, Embedding)
-│   ├── activation.py       # Activation functions: ReLU, Sigmoid, Tanh, Softmax
-│   ├── loss.py             # Loss functions: MSE, CrossEntropy, BCE
-│   ├── init.py             # Weight initialization methods: Xavier, He init
-│   └── sequential.py       # Container to stack layers like PyTorch Sequential
-│
-├── optim/                  # OPTIMIZATION / TRAINING ALGORITHMS
-│   ├── sgd.py              # Stochastic Gradient Descent optimizer
-│   ├── adam.py             # Adam optimizer (momentum + adaptive learning rate)
-│   └── base.py            # Base optimizer class interface (step, zero_grad)
-│
-├── viz/                    # VISUALIZATION + DEBUGGING TOOLS
-│   ├── graph_viz.py       # Visualize computation graphs (nodes + edges + ops)
-│   ├── tensor_viz.py      # Visualize tensors, shapes, and gradient flow
-│   └── training_plots.py  # Plot loss curves, accuracy graphs over epochs
-│
-├── demos/                 # SMALL EXPERIMENTS (proof engine actually works)
-│   ├── scalar_demo.py     # Basic scalar backprop tests (sanity check gradients)
-│   ├── xor_demo.py        # XOR problem: proves non-linearity + learning works
-│   ├── regression_demo.py # Curve fitting using simple neural network
-│   ├── mnist_demo.py      # Full MNIST training experiment
-│   └── gradient_check_demo.py # Numerical gradient vs autodiff verification
-│
-├── tests/                 # UNIT TESTS (ensures correctness of core engine)
-│   ├── test_tensor.py     # Tests tensor ops + gradient correctness
-│   ├── test_ops.py        # Tests mathematical operations + edge cases
-│   ├── test_autograd.py   # Tests backward pass + graph traversal
-│   ├── test_nn.py         # Tests neural network layers + forward/backward
-│   └── test_optim.py      # Tests optimizer updates (SGD, Adam correctness)
-│
-├── docs/                  # HUMAN DOCUMENTATION (explain + justify everything)
-│   ├── index.md           # Main project overview + how to use
-│   ├── autodiff_exp.md # Explains backprop + computational graph intuition
-│   ├── tensor_system.md   # Explains Tensor design + data/grad flow
-│   ├── backprop_notes.md  # Mathematical + practical notes on gradient flow
-│   └── mnist_experiment.md # Results, insights, and training observations
-│
-├── benchmarks/            # PERFORMANCE + ENGINEERING CREDIBILITY
-│   ├── speed_test.py      # Measures forward/backward pass speed
-│   ├── memory_test.py     # Measures memory usage of graph + tensors
-│   └── vs_numpy.py        # Compares performance with NumPy operations
-│
-├── assets/                # VISUAL OUTPUTS (used in README + docs)
-│   ├── graphs/            # Computation graph images
-│   ├── mnist_samples/     # Example predictions (correct vs wrong digits)
-│   ├── training_curves/   # Loss/accuracy plots over training
-│   └── diagrams/          # Architecture diagrams of engine design
-│
-├── scripts/               # REAL-WORLD EXECUTION ENTRY POINTS
-│   ├── train_mnist.py     # Full MNIST training pipeline script
-│   ├── train_xor.py       # Quick training demo for XOR problem
-│   ├── run_tests.sh       # Automated test runner script
-│   └── export_model.py    # Save trained model parameters for reuse
-│
-├── examples/              # SIMPLE STARTER CODE (for users/new learners)
-│   ├── basic_autograd.py  # Minimal gradient example (x² style)
-│   ├── simple_nn.py       # Small neural network training example
-│   └── mnist_minimal.py   # Minimal MNIST training script (clean version)
-│
-├── LEARNINGS.md           # YOUR PERSONAL ENGINEERING JOURNAL (VERY IMPORTANT)
-├── README.md              # Main project explanation + quick start + visuals
-├── CONTRIBUTING.md        # How others can extend ops/layers/optimizers
-├── CHANGELOG.md           # Version history of improvements
-├── LICENSE                # Legal usage (MIT recommended)
-├── pyproject.toml         # Python packaging config (installable library setup)
-├── requirements.txt       # Dependencies (numpy, matplotlib, graphviz, etc.)
-└── .gitignore             # Ignore venv, caches, build files
+A minimal autodiffentiation engine and neural network library built from scratch.Numpy only, no PyTorch.
+
+Supports forward and backward passes through a dynamic computation graph, a neural network API modelled after PyTorch, and computation graph visualization. Trained on MNIST.
+
 ```
+pip install nanograd
+```
+
+---
+
+## Quick start
+
+```python
+from nanograd import Tensor
+from nanograd.nn import Sequential, Linear, ReLU, CrossEntropyLoss, SGD
+
+# define a network
+model = Sequential(Linear(784, 128),ReLU(),Linear(128, 64),ReLU(),Linear(64, 10))
+
+loss_fn = CrossEntropyLoss()
+optimizer = SGD(model.parameters(), lr=0.01)
+
+# training step
+x = Tensor(X_batch)          
+out = model(x)               
+loss = loss_fn(out, y_batch)
+loss.backward()
+optimizer.step()
+optimizer.zero_grad()
+```
+
+## Autograd
+
+```python
+import numpy as np
+from nanograd import Tensor
+
+x = Tensor(np.array([[1.0, 2.0], [3.0, 4.0]]))
+y = Tensor(np.array([[0.5], [1.5]]))
+
+z = (x @ y).sum()
+z.backward()
+
+print(x.grad)   # dz/dx
+print(y.grad)   # dz/dy
+```
+
+## Computation graph visualization
+
+```python
+from nanograd.viz import draw_dot
+
+x = Tensor(np.array([2.0]))
+y = Tensor(np.array([3.0]))
+z = (x * y + x).sum()
+z.backward()
+
+dot = draw_dot(z)
+dot.render("graph", view=True)   
+```
+
+![computation graph](assets/computationgraph.svg)
+
+---
+
+## What's implemented
+
+**Tensor ops** — `+`, `-`, `*`, `/`, `**`, `@` (matmul), `sum`, `mean`, `reshape`, `transpose`, `exp`, `log`
+
+**Activations** — `relu`, `tanh`, `sigmoid`, `softmax`
+
+**Layers** — `Linear` (Xavier init), `ReLU`
+
+**Loss** — `CrossEntropyLoss`, `MSELoss`
+
+**Optimizer** — `SGD`
+
+**Viz** — `draw_dot`, `trace` (graphviz-based, local use)
+
+---
+
+## MNIST results
+
+Trained a `784 → 128 → 64 → 10` network with ReLU activations, SGD lr=0.01, batch size 32, 10 epochs.
+
+![mnist training](assets/mnist1.png)
+
+![mnist training](assets/mnist2.png)
+
+---
+
+## Run the tests
+
+```bash
+git clone https://github.com/duaasiraj/nanograd
+cd nanograd
+pip install -e ".[dev]"
+pytest tests/ -v
+```
+
+---
+
+## Project structure
+
+```
+nanograd/
+├── nanograd/
+│   ├── engine/
+│   │   ├── tensor.py       # Tensor class, all ops + backward rules
+│   │   └── utils.py        # topo sort, unbroadcast, gradient_check
+│   ├── nn/
+│   │   ├── layers.py       # Linear, ReLU
+│   │   ├── loss.py         # CrossEntropyLoss, MSELoss
+│   │   ├── optim.py        # SGD
+│   │   ├── sequential.py   # Sequential container
+│   │   ├── modules.py      # base Module class
+│   │   ├── accuracy.py     # multiclass accuracy
+│   │   └── metrics.py      # precision, recall, F1
+│   └── viz/
+│       └── graph_viz.py    # draw_dot, trace
+├── tests/
+│   └── test_gradients.py   # 17 numerical gradient checks
+├── demos/
+│   ├── mnist_demo.py
+│   └── xor_demo.py
+└── pyproject.toml
+```
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE)
+
+> Disclaimer: This project was developed as a learning project and may contain mistakes, inefficiencies, or incomplete implementations. If you spot an issue or have an improvement, feel free to open an issue or submit a pull request. Check out contribution.md for further details :)
