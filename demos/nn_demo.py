@@ -6,11 +6,7 @@ from nn.layers import Linear
 from nn.layers import ReLU
 from nn.loss import MSELoss
 
-model = Sequential(
-    Linear(2, 4),
-    ReLU(),
-    Linear(4, 1)
-)
+model = Sequential(Linear(2, 4),ReLU(),Linear(4, 1))
 
 x = Tensor(np.random.randn(3, 2))
 out = model.forward(x)
