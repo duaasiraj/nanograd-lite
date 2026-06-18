@@ -1,12 +1,12 @@
 import numpy as np
-from engine.tensor import Tensor
-from nn.modules import Module
-from nn.sequential import Sequential
-from nn.layers import Linear
-from nn.layers import ReLU
-from nn.loss import MSELoss
-from nn.optim import SGD
-from nn.accuracy import binary_accuracy
+from nanograd.engine.tensor import Tensor
+from nanograd.nn.modules import Module
+from nanograd.nn.sequential import Sequential
+from nanograd.nn.layers import Linear
+from nanograd.nn.layers import ReLU
+from nanograd.nn.loss import MSELoss
+from nanograd.nn.optim import SGD
+from nanograd.nn.accuracy import binary_accuracy
 
 X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 y = np.array([[0], [1], [1], [0]])

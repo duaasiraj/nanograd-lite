@@ -1,4 +1,4 @@
-from nn.modules import Module
+from nanograd.nn.modules import Module
 
 class Sequential(Module):
     def __init__(self, *layers):

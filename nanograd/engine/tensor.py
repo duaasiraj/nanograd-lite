@@ -1,7 +1,7 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from engine.utils import topo_sort,_unbroadcast
+from nanograd.engine.utils import topo_sort,_unbroadcast
 
 class Tensor:
     def __init__(self, data,_children=(),_op=''):

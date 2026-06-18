@@ -1,15 +1,15 @@
 from sklearn.datasets import fetch_openml
 import numpy as np
 from sklearn.model_selection import train_test_split
-from engine.tensor import Tensor
-from nn.modules import Module
-from nn.sequential import Sequential
-from nn.layers import Linear
-from nn.layers import ReLU
-from nn.loss import CrossEntropyLoss
-from nn.optim import SGD
-from nn.accuracy import multiclass_Accuracy
-from nn.metrics import multiclass_precision ,multiclass_recall, f1score
+from nanograd.engine.tensor import Tensor
+from nanograd.nn.modules import Module
+from nanograd.nn.sequential import Sequential
+from nanograd.nn.layers import Linear
+from nanograd.nn.layers import ReLU
+from nanograd.nn.loss import CrossEntropyLoss
+from nanograd.nn.optim import SGD
+from nanograd.nn.accuracy import multiclass_Accuracy
+from nanograd.nn.metrics import multiclass_precision ,multiclass_recall, f1score
 np.random.seed(42)
 
 X,y=fetch_openml("mnist_784",version=1,return_X_y=True,as_frame=False)

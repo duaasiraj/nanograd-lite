@@ -1,5 +1,5 @@
-from engine.tensor import Tensor
-from nn.modules import Module
+from nanograd.engine.tensor import Tensor
+from nanograd.nn.modules import Module
 import numpy as np
 import random
 

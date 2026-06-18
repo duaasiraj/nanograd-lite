@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
-from engine.tensor import Tensor
-from engine.utils import gradient_check
+from nanograd.engine.tensor import Tensor
+from nanograd.engine.utils import gradient_check
 
 
 np.random.seed(42)

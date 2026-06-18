@@ -1,4 +1,4 @@
-from engine.tensor import Tensor
+from nanograd.engine.tensor import Tensor
 import numpy as np
 class MSELoss:
     def __call__(self, pred, target):

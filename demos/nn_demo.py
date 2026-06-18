@@ -1,10 +1,10 @@
 import numpy as np
-from engine.tensor import Tensor
-from nn.modules import Module
-from nn.sequential import Sequential
-from nn.layers import Linear
-from nn.layers import ReLU
-from nn.loss import MSELoss, CrossEntropyLoss
+from nanograd.engine.tensor import Tensor
+from nanograd.nn.modules import Module
+from nanograd.nn.sequential import Sequential
+from nanograd.nn.layers import Linear
+from nanograd.nn.layers import ReLU
+from nanograd.nn.loss import MSELoss, CrossEntropyLoss
 
 model = Sequential(Linear(2, 4),ReLU(),Linear(4, 1))
 

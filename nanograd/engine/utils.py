@@ -27,7 +27,7 @@ def _unbroadcast(grad, original_shape):
 #SANITY CHECK-COMPARE NUMERIAL AND AUTOMATIC DIFF T_T
 
 def gradient_check(tensor_func, inputs, epsilon=1e-5, tolerance=1e-4):
-    from engine.tensor import Tensor
+    from nanograd.engine.tensor import Tensor
     tensor_inputs = [Tensor(x.copy()) for x in inputs]
     out = tensor_func(*tensor_inputs)
     assert out.data.size == 1, "tensor_func must return a scalar tensor (size=1)."

@@ -1,5 +1,5 @@
-from engine.tensor import Tensor
-from viz.graph_viz import draw_dot , trace 
+from nanograd.engine.tensor import Tensor
+from nanograd.viz.graph_viz import draw_dot , trace 
 from graphviz import Digraph
 
 x = Tensor(2.0)
