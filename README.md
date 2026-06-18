@@ -1,4 +1,4 @@
-# nanograd
+# nanograd-lite
 
 A minimal autodiffentiation engine and neural network library built from scratch.Numpy only, no PyTorch.
 
