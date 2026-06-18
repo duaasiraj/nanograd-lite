@@ -1,3 +1,5 @@
+import numpy as np
+
 class Module:
     def parameters(self):
         return []

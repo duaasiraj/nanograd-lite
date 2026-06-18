@@ -76,7 +76,7 @@ A sanity check was performed to ensure that the backward differentiation works p
 
 ### Motivation
 
-The scalar implementation worked, but real neural networks operate on tensors—multi-dimensional arrays of numbers. Extending the Tensor class to handle vector and matrix operations was the natural next step. The core challenge was not just implementing vectorized operations, but correctly handling broadcasting and ensuring gradients propagate correctly through these operations.
+The scalar implementation worked, but real neural networks operate on tensors->multi-dimensional arrays of numbers. Extending the Tensor class to handle vector and matrix operations was the natural next step. The core challenge was not just implementing vectorized operations, but correctly handling broadcasting and ensuring gradients propagate correctly through these operations.
 
 ### Understanding Broadcasting
 
@@ -122,7 +122,7 @@ a.grad = [[4],
           [4]]
 ```
 
-Why sum? Because in backpropagation, gradients from all computational paths must be added. Each output that a parameter influenced contributes a partial derivative, and the total gradient is the sum of all these contributions. If we were to average or just pick one value, we would either artificially shrink gradients or ignore contributions entirely—both of which would break training.
+Why sum? Because in backpropagation, gradients from all computational paths must be added. Each output that a parameter influenced contributes a partial derivative, and the total gradient is the sum of all these contributions. If we were to average or just pick one value, we would either artificially shrink gradients or ignore contributions entirely, both of which would break training.
 
 ### Implementing Unbroadcasting
 
@@ -185,7 +185,7 @@ These elegant formulations make the implementation straightforward but require c
 When implementing operations, I needed to use the `Tensor` class in functions that were themselves being used by `Tensor`. This created a circular import dependency. The fix was to import inside the function itself where needed, rather than at the module level. This works because Python executes imports at runtime, so by the time the function is called, the module is fully loaded.
 
 **Gradient Check Failures**
-The gradient checking function was failing repeatedly, but the issue wasn't in the Tensor implementation—it was in the test itself. The array `x` was being overwritten during the test, corrupting the state. The fix was to store the original array and restore it after each perturbation step. This taught me that gradient checking requires careful state management.
+The gradient checking function was failing repeatedly, but the issue wasn't in the Tensor implementation, it was in the test itself. The array `x` was being overwritten during the test, corrupting the state. The fix was to store the original array and restore it after each perturbation step. This taught me that gradient checking requires careful state management.
 
 **MatMul Broadcasting Edge Cases**
 Matrix multiplication has specific broadcasting rules: the last dimension of A must match the second-to-last dimension of B. When dealing with batched operations, the broadcasting dimensions must be handled differently from the matrix dimensions. I had to carefully separate the batch dimensions (which can broadcast) from the matrix dimensions (which must match exactly).
@@ -244,7 +244,7 @@ out:          (32, 10, 5)  <- The Forward Pass Output
 
 It temporarily treats `other.data` as if its shape is `(1, 4, 5)`. Then, it broadcasts that leading 1 up to 32 so it can cleanly perform 32 independent matrix multiplications.
 
-Now here's the tricky part: `out.grad` also has 3 dimensions, which means when I calculate `other.grad`, even though it's just supposed to have 2 dimensions, it now has 3. Hence transposing is not enough—I also need to unbroadcast the added dimension to get the correct gradient.
+Now here's the tricky part: `out.grad` also has 3 dimensions, which means when I calculate `other.grad`, even though it's just supposed to have 2 dimensions, it now has 3. Hence transposing is not enough. I also need to unbroadcast the added dimension to get the correct gradient.
 
 ### The Sum Function Problem
 
@@ -262,7 +262,7 @@ Deriving the equations for tanh, sigmoid, and ReLU was now easier than expected 
 
 **Tanh:** Forward is `(e^x - e^(-x))/(e^x + e^(-x))`. Backward is `1 - t^2`.
 
-The patterns were familiar now—just the chain rule and element-wise operations.
+The patterns were familiar now, just the chain rule and element-wise operations.
 
 ### SoftMax: The Hard One
 
@@ -283,7 +283,7 @@ and backward as:
 J^T * out.grad
 ```
 
-But it takes up too much space and time complexity in reality. A 1000 by 1000 array would require 1,000,000 elements—completely impractical for any real model. So there was need to simplify this.
+But it takes up too much space and time complexity in reality. A 1000 by 1000 array would require 1,000,000 elements. Completely impractical for any real model. So there was need to simplify this.
 
 I won't go into the math here since it took hours to understand and one can dive into it if needed. I'll try to add a doc later documenting the math behind each function. But until then, all that's needed is that the backward turn out to be:
 
@@ -291,13 +291,13 @@ I won't go into the math here since it took hours to understand and one can dive
 s_j * (g[j] - s·g)
 ```
 
-And as seen, this only takes O(j) space instead of O(j²). One thing to note is `s·g` is the dot product. It removes common modes and returns relative differences rather than absolute values. Meaning if the gradient is the same for all values of x, the relative gradient would be 0 for all elements—which makes sense because a uniform shift in logits doesn't change the softmax output.
+And as seen, this only takes O(j) space instead of O(j²). One thing to note is `s·g` is the dot product. It removes common modes and returns relative differences rather than absolute values. Meaning if the gradient is the same for all values of x, the relative gradient would be 0 for all elements, which makes sense because a uniform shift in logits doesn't change the softmax output.
 
 ### The Debugging Phase
 
 I had to once again rewrite the sum function to accept additional arguments and work properly, as it was clashing with NumPy's own function. This got a bit frustrating as I had to now keep 2 separate versions within sum, as well as ensure that a final scalar is being considered since `out.grad` needs to be a single scalar value.
 
-The rest of the mistakes here were mainly parameter mismatches—passing the wrong number of arguments, forgetting to handle edge cases, and not properly checking shapes during gradient computation.
+The rest of the mistakes here were mainly parameter mismatches,passing the wrong number of arguments, forgetting to handle edge cases, and not properly checking shapes during gradient computation.
 
 
 **SoftMax Implementation:**
@@ -372,13 +372,13 @@ This was conceptually simple but required careful implementation:
 
 ### The Parameter Tracking System
 
-One subtle but important decision was how to track which tensors were parameters vs. intermediate values. In PyTorch, this is handled by the `requires_grad` flag. In my implementation, I kept it simpler—the `Sequential` model collects parameters from each layer.
+One subtle but important decision was how to track which tensors were parameters vs. intermediate values. In PyTorch, this is handled by the `requires_grad` flag. In my implementation, I kept it simpler. The `Sequential` model collects parameters from each layer.
 
 The separation of parameters from intermediate values was crucial for keeping the system clean and preventing accidental gradient updates on non-parameters.
 
 ### Conceptual Breakthrough
 
-The hardest part wasn't writing the code—it was understanding how all the pieces fit together. For a while, I was just following formulas without truly grasping what was happening.
+The hardest part wasn't writing the code. It was understanding how all the pieces fit together. For a while, I was just following formulas without truly grasping what was happening.
 
 The breakthrough came when I visualized the flow:
 1. **Forward pass:** Input → Layer 1 → Activation → Layer 2 → Activation → ... → Loss
@@ -386,7 +386,7 @@ The breakthrough came when I visualized the flow:
 
 Each layer transforms the data in some way, and the loss at the end measures how wrong the prediction is. The gradients tell each layer how to adjust its weights to reduce that loss.
 
-Once this clicked, the rest of the implementation was just plumbing—connecting the dots between the mathematical concepts and the code.
+Once this clicked, the rest of the implementation was just plumbing, connecting the dots between the mathematical concepts and the code.
 
 ### Sanity Check
 
@@ -472,7 +472,7 @@ The XOR problem is notoriously tricky because it's not linearly separable. The n
 
 ### The XOR Demo Success
 
-After several tries, the demo succeeded resulting in zero loss and 100% accuracy for now. The XOR problem—which requires learning the XOR function (true only when inputs differ) was a perfect test case because it's simple enough to verify manually but complex enough to require a non-linear network.
+After several tries, the demo succeeded resulting in zero loss and 100% accuracy for now. The XOR problem, which requires learning the XOR function (true only when inputs differ) was a perfect test case because it's simple enough to verify manually but complex enough to require a non-linear network.
 
 The network architecture I used was:
 - Input layer: 2 neurons (for the two XOR inputs)
@@ -481,7 +481,7 @@ The network architecture I used was:
 
 This is a minimal network that should be able to learn XOR, and after the fixes, it did. The loss dropped to essentially zero (within numerical precision), and accuracy hit 100%.
 
-The loss went to 0, which means the network perfectly learned the XOR function. This was a satisfying milestone—it proved that all the pieces worked together correctly.
+The loss went to 0, which means the network perfectly learned the XOR function. This was a satisfying milestone.It proved that all the pieces worked together correctly.
 
 ### Final Results
 
@@ -497,3 +497,186 @@ The loss curve shows a smooth decrease to near zero, and the accuracy reaches 10
 ### Next Steps
 
 The next phase is extending the classes a bit, adding cross-entropy loss, and the MNIST dataset. 
+
+---
+
+## Phase 4 — Improving Functions and MNIST Training Loop
+
+### Motivation
+
+After successfully training on the XOR problem, it was time to tackle something real. MNIST(the "hello world" of computer vision)was the obvious next step. But moving from a toy problem to a real dataset exposed several limitations in my implementation that needed fixing. This phase was about making the system robust enough to handle actual machine learning tasks.
+
+### The SoftMax Fix
+
+So first thing I had to correct in this phase was the SoftMax function. For MNIST-like datasets, we cannot collapse all dimensions. It just doesn't work since each batch needs its own max and sum and SoftMax.
+
+Here's the problem: when you have a batch of multiple samples, you need to compute SoftMax independently for each sample in the batch. If you just flatten everything and compute SoftMax globally, you're mixing probabilities across different samples, which makes no sense.
+
+The fix was adding `axis` and `keepdims` parameters to the SoftMax implementation. This allowed me to specify that we should compute the SoftMax along the class dimension (axis=1) while keeping the batch dimension (axis=0) separate.
+
+```python
+def softmax(self,axis=-1):
+        exp=np.exp(self.data - np.max(self.data,axis,keepdims=True))
+        s=exp / np.sum(exp,axis,keepdims=True)
+        out = Tensor(s, (self,), "softmax")
+        def _backward():
+            dot=np.sum(out.data*out.grad,axis, keepdims=True)
+            self.grad += out.data*(out.grad-dot)
+        out._backward=_backward
+        return out
+```
+
+This was crucial. Without it, the MNIST training would have been impossible.
+
+### Cross-Entropy Loss: The Hardest Part
+
+Next thing was unlike the XOR dataset, MNIST isn't a binary problem. Hence we need a more complex loss function. I think the hardest part for me in the cross-entropy loss was figuring out how to pair and extract the predictions.
+
+The amount of bugs were real. Let me walk through the issues:
+
+**Bug 1: Target Encoding**
+First, the target had to be wrapped into one-hot encoding so we can get the loss for that specific output node. MNIST has 10 classes (digits 0-9), and the network outputs a probability distribution over these 10 classes. For each sample, we only care about the probability assigned to the correct class. That's what cross-entropy measures.
+
+The one-hot encoding creates a vector of length 10 with a 1 at the position of the correct class and 0s elsewhere. When multiplied element-wise with the log probabilities, only the correct class's contribution survives.
+
+**Bug 2: The Graph Disconnection**
+My mistake was that I was converting my probability to NumPy then converting that back to a Tensor object. This was disconnecting my neural network graph altogether.
+
+This was a subtle but devastating bug. When I did `np.array(probabilities)` and then `Tensor(np.array(...))`, I was creating a new Tensor that had no relationship to the original computation graph. The `_backward` functions were lost, and gradients couldn't flow back through the network. The loss would compute correctly, but `loss.backward()` would do nothing because the graph was broken.
+
+The fix was to keep everything as Tensors throughout the computation. No converting to NumPy and back. The entire loss calculation had to happen within the Tensor framework.
+
+### The Cross-Entropy Implementation
+
+So long story short, here's how we fixed the code:
+
+1. **Convert raw output to probabilities using SoftMax:**
+   ```python
+   probs = output.softmax(axis=1)
+   ```
+
+2. **Get the batch size from target shape:**
+   ```python
+   batch_size = target.shape[0]
+   num_classes = pred.data.shape[1]
+   ```
+
+3. **Build the target of size (batch_size, num_classes):**
+   This needed to be a Tensor, not a NumPy array, to maintain the graph connection.
+
+4. **Convert to one-hot encoding:**
+   ```python
+   target_new = np.zeros((batch_size, num_classes))
+   target_new[np.arange(batch_size), target] = 1
+   target_tensor = Tensor(target_new)
+   ```
+
+  
+5. **Get the log of our probability:**
+   ```python
+   log_probs = probs.log()
+   ```
+
+6. **Get a loss matrix by multiplying the log probabilities to our one-hot encoded target:**
+   ```python
+   loss_matrix =  -(log_probs * target_tensor)  
+    ```
+
+   This preserves the graph because `log_probs` still has the `_backward` chain. The one-hot is just a constant multiplier.
+
+7. **Get loss per sample by summing over axis=1:**
+   ```python
+   per_sample_loss = loss_matrix.sum(axis=1)
+   ```
+
+8. **Return the mean of this:**
+   ```python
+   loss = per_sample_loss.mean()
+   ```
+
+The key insight was that the multiplication with the one-hot encoding doesn't break the graph because the log probabilities still carry the gradient information. The graph flows through the log probabilities, through the SoftMax, through the linear layers, and all the way back to the weights.
+
+### The MNIST Data Loading
+
+`fetch_openml` is basically a dataset downloader + loader. It pulls datasets from an online repository called OpenML, then converts them into a format you can directly use in Python (usually NumPy arrays or pandas dataframes).
+
+This was perhaps one of the more satisfying parts. The MNIST dataset was taken and the more important thing here was using batches since my engine can't handle so many samples at once.
+
+The batch handling required:
+1. Shuffling the dataset to prevent the model from seeing samples in the same order every epoch
+2. Dividing into mini-batches of reasonable size (I used 32)
+3. Feeding each batch through the network, computing loss, and updating parameters
+
+### The Model Architecture
+
+My model was a typical 2 hidden layer network:
+```
+Linear(784, 128) -> ReLU() -> Linear(128, 64) -> ReLU() -> Linear(64, 10)
+```
+
+- **784** input features: MNIST images are 28×28 = 784 pixels
+- **128** neurons in first hidden layer
+- **64** neurons in second hidden layer
+- **10** output classes: digits 0-9
+
+The architecture was simple but sufficient. Deep enough to learn meaningful features but shallow enough to train quickly.
+
+### The Training Loop
+
+The training loop was straightforward:
+
+1. **Batch division:** Split the training data into mini-batches
+2. **Zero grad:** Reset gradients before each batch
+3. **Forward pass:** Pass the batch through the network
+4. **Metrics calculation:** Compute loss and accuracy
+5. **Backward step:** Compute gradients via backpropagation
+6. **SGD pass:** Update parameters using gradient descent
+7. **Loop:** Repeat for all batches and epochs
+
+The important metric additions for MNIST were precision, recall, and F1 score, not just accuracy. These give a more complete picture of model performance, especially when classes might be imbalanced.
+
+### The Satisfying Results
+
+This was one of my major achievements proving everything was working. The results spoke for themselves:
+
+```
+================================
+Final Results:
+================================
+Training loss: 0.11600546410959048
+Training accuracy: 0.9671607142857143
+Training precision: 0.9666747496310609
+Training recall: 0.9669455238646252
+Training F1: 0.9667218984465014
+================================
+Test loss: 0.14137049023539427
+Test accuracy: 0.959046803652968
+Test precision: 0.9590414519371864
+Test recall: 0.9603507560423662
+Test F1: 0.9595787296568632
+================================
+```
+
+Let me break down what these numbers mean:
+
+- **Loss:** Training loss (0.116) and test loss (0.141) were close, indicating no significant overfitting
+- **Accuracy:** 96.7% on training, 95.9% on test. Excellent performance for a simple architecture
+- **Precision:** 96.6% training, 95.9% test. When the model predicts a class, it's right 96% of the time
+- **Recall:** 96.7% training, 96.0% test. The model catches 96% of all instances of each class
+- **F1:** 96.7% training, 95.96% test.A balanced measure combining precision and recall
+
+This confirmed no overfitting, no underfitting, and good precision and recall. The model was genuinely learning the task, not just memorizing the training data.
+
+### What the Results Mean
+
+These metrics confirmed that:
+1. **No overfitting:** The test performance was only slightly worse than training performance, meaning the model generalized well
+2. **No underfitting:** The training accuracy was high, meaning the model had enough capacity to learn the task
+3. **Balanced performance:** Precision and recall were similar, meaning the model wasn't biased toward any particular digit
+
+The numbers were comparable to what you'd expect from a similar network in PyTorch or TensorFlow, which was incredibly satisfying. It meant my autograd engine, tensor operations, modules, and training loop were all working correctly.
+
+### Final Results and Training Loops
+
+![Resulting outcome](assets/mnist1.png)
+![Resulting outcome](assets/mnist2.png)

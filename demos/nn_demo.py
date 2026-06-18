@@ -4,7 +4,7 @@ from nn.modules import Module
 from nn.sequential import Sequential
 from nn.layers import Linear
 from nn.layers import ReLU
-from nn.loss import MSELoss
+from nn.loss import MSELoss, CrossEntropyLoss
 
 model = Sequential(Linear(2, 4),ReLU(),Linear(4, 1))
 
@@ -17,3 +17,28 @@ target = Tensor(np.zeros((3, 1)))
 l = loss(model(x), target)
 l.backward()
 print(model.parameters()[0].grad)
+
+#cross entropy sanity check 
+pred = [[2.0, 1.0, 0.1],   
+        [0.5, 2.0, 0.3]]
+#manual calculation:
+x = np.array([2.0, 1.0, 0.1])
+e = np.exp(x)
+print(e / e.sum())
+a=-np.log(0.65900114)
+print(a)
+
+
+b = np.array([0.5, 2.0, 0.3])
+c = np.exp(b)
+print(c / c.sum())
+d=-np.log(0.71133182)
+print(d)
+
+print((0.4170300145873477 + 0.3406162632509799) / 2 )
+print()
+#Tensor calculation 
+target = [0, 1]
+p=Tensor(pred)
+loss=CrossEntropyLoss()
+print(loss(pred=p,target=target))
