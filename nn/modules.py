@@ -4,7 +4,7 @@ class Module:
     
     def zero_grad(self):
         for p in self.parameters():
-            p.grad=0
+            p.grad=np.zeros_like(p.data)
     
     def forward(self, x):
         raise NotImplementedError

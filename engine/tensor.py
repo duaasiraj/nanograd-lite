@@ -138,13 +138,19 @@ class Tensor:
         out._backward=_backward
         return out
     
-    def softmax(self):
-        exp=np.exp(self.data - np.max(self.data))
-        s=exp / np.sum(exp)
+    def softmax(self,axis=-1):
+        exp=np.exp(self.data - np.max(self.data,axis,keepdims=True))
+        s=exp / np.sum(exp,axis,keepdims=True)
         out = Tensor(s, (self,), "softmax")
         def _backward():
-            dot=np.sum(out.data*out.grad)
+            dot=np.sum(out.data*out.grad,axis, keepdims=True)
             self.grad += out.data*(out.grad-dot)
         out._backward=_backward
         return out
 
+    def log(self):
+        out=Tensor(np.log(self.data),(self,),"log")
+        def _backward():
+            self.grad+=(1/self.data)*out.grad
+        out._backward=_backward
+        return out
