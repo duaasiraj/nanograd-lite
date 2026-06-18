@@ -5,7 +5,7 @@ A minimal autodiffentiation engine and neural network library built from scratch
 Supports forward and backward passes through a dynamic computation graph, a neural network API modelled after PyTorch, and computation graph visualization. Trained on MNIST.
 
 ```
-pip install nanograd
+pip install nanograd-lite
 ```
 
 ---

@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "nanograd"
-version = "0.1.0"
-description = "A minimal autodiff engine and neural network library built from scratch"
+name = "nanograd-lite"
+version = "0.1.1"
+description = "A minimal NumPy-based autograd engine and neural network library, built from scratch"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
