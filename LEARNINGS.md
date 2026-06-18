@@ -408,3 +408,92 @@ The module system now provides the foundation for building and training neural n
 - Parameter tracking for optimization
 
 The next step will be implementing an optimizer and a training loop to actually train models on real data.
+
+---
+
+## Phase 3 — Optimization and Training Loop
+
+### Motivation
+
+With the neural network modules built, the next step was to actually train them. Having layers and activations is useless without a way to update the parameters based on the computed gradients. This phase was about bringing everything together into a working training system.
+
+### Understanding Stochastic Gradient Descent
+
+Stochastic Gradient Descent is an optimization algorithm used in machine learning, especially for large datasets, that updates model parameters efficiently using small batches or single samples. The formula is simple:
+
+```
+w = w - lr * w.grad
+```
+
+But there's an important nuance that I had to learn the hard way.
+
+### The Zero Gradient Mystery
+
+An important thing to note is that whenever we call this in PyTorch, one runs the `zero_grad()` function. Why is that?
+
+Gradients in neural nets are accumulated, not overwritten. Each backward pass builds a fresh computation of "how wrong the model is for this batch." If we don't zero out the gradients before the next backward pass, the new gradients would be added to the old ones instead of replacing them. This would effectively train the model on a weighted sum of all previous batches, which is not what we want.
+
+The accumulation behavior is actually useful in some cases (like when you want to simulate a larger batch size), but for standard training, we need to reset gradients to zero after each parameter update. The `zero_grad()` function handles this by setting all parameter gradients to `None` or zero.
+
+### The Shape Issue Crisis
+This one was frustrating since it kept happening. 
+The crucial thing when building the training loop was that it was absolutely necessary for the target and output shapes to work for our MSE function to work. The shape issue caused several bugs when building the `xor_demo`.
+
+Here's what kept happening: I'd feed in data of shape `(batch_size, features)` and get output of shape `(batch_size, 1)`, but my targets were shape `(batch_size,)`. The MSE function would try to compute differences between arrays of different shapes and either fail or give nonsensical results.
+
+The fix was to ensure that:
+1. The forward pass output shape matched the expected target shape
+2. Targets were reshaped to match the output shape when necessar
+
+This was frustrating because the errors weren't always obvious.Sometimes the shapes would be off by one dimension and the code would still run but produce garbage gradients.
+
+### Adding Accuracy Tracking
+
+Another thing I added in this phase was simple binary accuracy calculation. For binary classification, this is straightforward:
+
+```python
+accuracy = np.mean((pred.data >= 0.5).astype(float) == target.data)
+```
+
+This converts predictions to 0 or 1 based on a 0.5 threshold, then compares them to the targets and averages the matches. It's a simple but essential metric to track during training.
+
+### The Local Minima Problem
+
+An issue faced was the code getting stuck at a local minima. The loss would plateau at some non-zero value and just refuse to go down, even after many epochs. This is a classic problem with gradient descent.It can get trapped in suboptimal regions of the loss landscape.
+
+The solution was using `np.random.seed()` to fix this part. By setting a specific random seed, I could reproduce and debug the issue more consistently. But the real fix was understanding that the initialization mattered a lot. With poor weight initialization, the network could easily get stuck. The Xavier initialization from Phase 2 helped, but sometimes the random draws would still produce bad starting points.
+
+What I actually ended up doing was:
+1. Trying different random seeds until the network consistently converged
+2. Adjusting the learning rate to be more aggressive in escaping shallow minima
+3. Ensuring the network architecture had enough capacity to learn the XOR function
+
+The XOR problem is notoriously tricky because it's not linearly separable. The network needs to learn non-linear decision boundaries, and if it doesn't start in the right region of the weight space, it can fail to find the correct solution.
+
+### The XOR Demo Success
+
+After several tries, the demo succeeded resulting in zero loss and 100% accuracy for now. The XOR problem—which requires learning the XOR function (true only when inputs differ) was a perfect test case because it's simple enough to verify manually but complex enough to require a non-linear network.
+
+The network architecture I used was:
+- Input layer: 2 neurons (for the two XOR inputs)
+- Hidden layer: 4 neurons with ReLU activation
+- Output layer: 1 neuron 
+
+This is a minimal network that should be able to learn XOR, and after the fixes, it did. The loss dropped to essentially zero (within numerical precision), and accuracy hit 100%.
+
+The loss went to 0, which means the network perfectly learned the XOR function. This was a satisfying milestone—it proved that all the pieces worked together correctly.
+
+### Final Results
+
+![Resulting outcome](assets/xor.png)
+
+The loss curve shows a smooth decrease to near zero, and the accuracy reaches 100%. The network successfully learned the XOR function, confirming that:
+- The tensor operations work correctly
+- The activation functions are properly implemented
+- The modules connect properly in sequence
+- The optimization loop correctly updates parameters
+- The gradients are computed and applied properly
+
+### Next Steps
+
+The next phase is extending the classes a bit, adding cross-entropy loss, and the MNIST dataset. 
