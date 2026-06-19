@@ -1,4 +1,4 @@
-# nanograd
+# nanograd-lite
 
 A minimal autodiffentiation engine and neural network library built from scratch.Numpy only, no PyTorch.
 
@@ -136,7 +136,11 @@ nanograd/
 
 MIT — see [LICENSE](LICENSE)
 
+<<<<<<< HEAD
 ## Credits
 Visualisation in graph_viz has been taken from Andrej Karpathy's repo
 
 > Disclaimer: This project was developed as a learning project and may contain mistakes, inefficiencies, or incomplete implementations. If you spot an issue or have an improvement, feel free to open an issue or submit a pull request. Check out contribution.md for further details :)
+=======
+> Disclaimer: This project was developed as a learning project and may contain mistakes, inefficiencies, or incomplete implementations. If you spot an issue or have an improvement, feel free to open an issue or submit a pull request. Check out contribution.md for further details :)
+>>>>>>> 2267bb15eb75ca0fb71e0655e678294e793eb67a
