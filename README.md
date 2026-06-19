@@ -4,6 +4,8 @@ A minimal autodiffentiation engine and neural network library built from scratch
 
 Supports forward and backward passes through a dynamic computation graph, a neural network API modelled after PyTorch, and computation graph visualization. Trained on MNIST.
 
+>If you are looking for the process /learnings , check out LEARNINGS.md 
+
 ```
 pip install nanograd-lite
 ```
@@ -85,9 +87,9 @@ dot.render("graph", view=True)
 
 Trained a `784 → 128 → 64 → 10` network with ReLU activations, SGD lr=0.01, batch size 32, 10 epochs.
 
-![mnist training](assets/mnist1.png)
+![mnist training](assets/mnist.png)
 
-![mnist training](assets/mnist2.png)
+
 
 ---
 
@@ -133,5 +135,8 @@ nanograd/
 ## License
 
 MIT — see [LICENSE](LICENSE)
+
+## Credits
+Visualisation in graph_viz has been taken from Andrej Karpathy's repo
 
 > Disclaimer: This project was developed as a learning project and may contain mistakes, inefficiencies, or incomplete implementations. If you spot an issue or have an improvement, feel free to open an issue or submit a pull request. Check out contribution.md for further details :)
