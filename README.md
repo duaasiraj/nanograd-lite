@@ -136,9 +136,8 @@ nanograd/
 
 MIT — see [LICENSE](LICENSE)
 
-<<<<<<< HEAD
 ## Credits
-Visualisation in graph_viz has been taken from Andrej Karpathy's repo
+Visualisation in graph_viz has been taken from Andrej Karpathy's repo. It only supports scalar tensors and was used to get an initial mental model on the flow of gradients and how things were connecting.
 
 > Disclaimer: This project was developed as a learning project and may contain mistakes, inefficiencies, or incomplete implementations. If you spot an issue or have an improvement, feel free to open an issue or submit a pull request. Check out contribution.md for further details :)
 
