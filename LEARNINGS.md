@@ -678,8 +678,8 @@ The numbers were comparable to what you'd expect from a similar network in PyTor
 
 ### Final Results and Training Loops
 
-![Resulting outcome](assets/mnist1.png)
-![Resulting outcome](assets/mnist2.png)
+![Resulting outcome](assets/mnist.png)
+
 
 ## AI Disclosure
 
@@ -690,3 +690,5 @@ AI tools were used only as a supplementary aid for:
 - Assisting with documentation, explanations, and code comments where appropriate.
 
 All core implementation, design decisions, debugging, and final code were completed and verified by me. 
+
+>Disclaimer: Since the project was constantly evolving in it's file structure , there is a possibility that some of the files mentioned especially in the initial phases have been modified , replaced or moved. 
